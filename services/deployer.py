@@ -137,7 +137,15 @@ class DeploymentService:
                     ngrok_auth=ngrok_auth
                 )
                 
-                # Step 8: Save notebook
+                # Step 8: Save single cell code to TXT file
+                single_cell_filename = f"fastapi_deploy_single_cell_{deployment_id}.txt"
+                single_cell_path = os.path.join('generated_notebooks', single_cell_filename)
+                
+                os.makedirs('generated_notebooks', exist_ok=True)
+                with open(single_cell_path, 'w', encoding='utf-8') as f:
+                    f.write(single_cell_code)
+                
+                # Step 9: Save notebook
                 notebook_filename = f"fastapi_deploy_{deployment_id}.ipynb"
                 notebook_path = self.notebook_generator.save_notebook(
                     notebook_result["notebook"], 
@@ -151,6 +159,8 @@ class DeploymentService:
                     "notebook_path": notebook_path,
                     "notebook_filename": notebook_filename,
                     "single_cell_code": single_cell_code,
+                    "single_cell_path": single_cell_path,
+                    "single_cell_filename": single_cell_filename,
                     "colab_url": "https://colab.research.google.com/",
                     "repository_info": {
                         "url": github_url,

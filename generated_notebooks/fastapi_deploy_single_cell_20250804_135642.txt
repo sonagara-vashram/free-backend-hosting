@@ -1,57 +1,4 @@
-from typing import Dict, Optional
-
-
-class SingleCellGenerator:
-    """Generate single cell deployment code for Google Colab"""
-    
-    def generate_single_cell_deployment(self,
-                                      github_url: str,
-                                      app_file: str,
-                                      app_variable: str,
-                                      env_vars: Optional[Dict[str, str]] = None,
-                                      requirements: Optional[str] = None,
-                                      app_name: Optional[str] = None,
-                                      ngrok_auth: Optional[str] = None) -> str:
-        """Generate complete single cell deployment code"""
-        
-        # Parse requirements
-        base_packages = ["pyngrok", "fastapi", "uvicorn[standard]", "python-dotenv", "requests", "aiofiles"]
-        custom_packages = []
-        
-        if requirements:
-            for line in requirements.split('\n'):
-                line = line.strip()
-                if line and not line.startswith('#'):
-                    custom_packages.append(line)
-        
-        all_packages = base_packages + custom_packages
-        packages_str = ', '.join([f'"{pkg}"' for pkg in all_packages])
-        
-        # Environment variables setup
-        env_setup = ""
-        if env_vars:
-            env_lines = ["# 🔐 Setting up environment variables", "import os", ""]
-            
-            for key, value in env_vars.items():
-                # Properly escape quotes and special characters
-                escaped_value = value.replace('\\', '\\\\').replace('"', '\\"').replace("'", "\\'")
-                env_lines.append(f'os.environ["{key}"] = "{escaped_value}"')
-            
-            env_lines.extend([
-                "",
-                f"print('✅ Set {len(env_vars)} environment variables')",
-                "print('🔐 Environment variables configured:')",
-                f"env_vars_list = {list(env_vars.keys())}",
-                "for key in env_vars_list:",
-                "    print(f'  ✓ {key}')"
-            ])
-            
-            env_setup = "\\n".join(env_lines)
-        else:
-            env_setup = 'print("ℹ️ No environment variables configured")'
-        
-        # Generate the complete single cell code
-        cell_code = f'''# 🚀 ONE-CLICK FASTAPI DEPLOYMENT
+# 🚀 ONE-CLICK FASTAPI DEPLOYMENT
 # Copy this entire cell to Google Colab and run it!
 
 import os
@@ -66,21 +13,21 @@ print("🎯 ONE-CLICK FASTAPI DEPLOYMENT STARTING...")
 print("=" * 60)
 
 # Step 1: Install packages
-print("\\n📦 Installing required packages...")
-packages_to_install = [{packages_str}]
+print("\n📦 Installing required packages...")
+packages_to_install = ["pyngrok", "fastapi", "uvicorn[standard]", "python-dotenv", "requests", "aiofiles", "fastapi==0.104.1", "uvicorn==0.24.0"]
 
 for package in packages_to_install:
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", package])
-        print(f"✅ Installed: {{package}}")
+        print(f"✅ Installed: {package}")
     except:
-        print(f"⚠️ Failed to install: {{package}}")
+        print(f"⚠️ Failed to install: {package}")
 
 print("✅ Package installation completed!")
 
 # Step 2: Clone repository with enhanced support (Public/Private)
-print("\\n📥 Cloning repository...")
-github_url = "{github_url}"
+print("\n📥 Cloning repository...")
+github_url = "https://github.com/sonagara-vashram/test.git"
 
 # Ensure clean directory
 if os.path.exists('/content/app'):
@@ -90,19 +37,19 @@ if os.path.exists('/content/app'):
 clone_success = False
 clone_methods = [
     # Method 1: Standard git clone
-    {{
+    {
         'name': 'Standard Clone',
         'cmd': lambda: subprocess.run(['git', 'clone', github_url, '/content/app'], 
                                     check=True, capture_output=True, text=True, timeout=60)
-    }},
+    },
     # Method 2: Clone with depth 1 (faster for large repos)
-    {{
+    {
         'name': 'Shallow Clone',
         'cmd': lambda: subprocess.run(['git', 'clone', '--depth', '1', github_url, '/content/app'], 
                                     check=True, capture_output=True, text=True, timeout=60)
-    }},
+    },
     # Method 3: Clone with different configs for network issues
-    {{
+    {
         'name': 'Enhanced Clone',
         'cmd': lambda: (
             subprocess.run(['git', 'config', '--global', 'http.postBuffer', '524288000'], check=False),
@@ -110,25 +57,25 @@ clone_methods = [
             subprocess.run(['git', 'clone', '--depth', '1', '--single-branch', github_url, '/content/app'], 
                          check=True, capture_output=True, text=True, timeout=90)
         )[-1]
-    }},
+    },
     # Method 4: Alternative clone for private repos
-    {{
+    {
         'name': 'Alternative Clone',
         'cmd': lambda: subprocess.run(['git', 'clone', '--recurse-submodules', '--depth', '1', github_url, '/content/app'], 
                                     check=True, capture_output=True, text=True, timeout=90)
-    }}
+    }
 ]
 
 for i, method in enumerate(clone_methods, 1):
     try:
-        print(f"🔄 {{method['name']}} (Attempt {{i}}/{{len(clone_methods)}})...")
+        print(f"🔄 {method['name']} (Attempt {i}/{len(clone_methods)})...")
         result = method['cmd']()
         clone_success = True
         print("✅ Repository cloned successfully!")
         break
     except subprocess.CalledProcessError as e:
         error_details = e.stderr.strip() if e.stderr else str(e)
-        print(f"⚠️ {{method['name']}} failed: {{error_details[:100]}}")
+        print(f"⚠️ {method['name']} failed: {error_details[:100]}")
         
         # Provide specific guidance based on error
         if 'Authentication failed' in error_details:
@@ -139,18 +86,18 @@ for i, method in enumerate(clone_methods, 1):
             print("⏰ Note: Network timeout - retrying with different method")
             
         if i == len(clone_methods):
-            print("\\n❌ All clone attempts exhausted. Troubleshooting:")
-            print("\\n🔧 **Common Solutions:**")
+            print("\n❌ All clone attempts exhausted. Troubleshooting:")
+            print("\n🔧 **Common Solutions:**")
             print("1. ✅ **Check Repository URL** - Ensure it's correct and accessible")
             print("2. ✅ **Repository Access** - Works with both Public and Private repos")
             print("3. ✅ **Network Issues** - Try running the cell again")
             print("4. ✅ **GitHub Status** - Check if GitHub is accessible")
             print("5. ✅ **Repository Exists** - Verify the repository exists")
-            print(f"\\n🔗 **Repository URL:** {{github_url}}")
-            print("\\n⚡ **Quick Fix:** Verify the repository URL and try again!")
+            print(f"\n🔗 **Repository URL:** {github_url}")
+            print("\n⚡ **Quick Fix:** Verify the repository URL and try again!")
             
             # Don't raise exception immediately, try alternative approach
-            print("\\n🔄 Attempting alternative download method...")
+            print("\n🔄 Attempting alternative download method...")
             try:
                 # Try downloading as ZIP if git clone fails
                 import urllib.request
@@ -161,7 +108,7 @@ for i, method in enumerate(clone_methods, 1):
                 else:
                     zip_url = github_url + '/archive/main.zip'
                 
-                print(f"📦 Trying ZIP download: {{zip_url}}")
+                print(f"📦 Trying ZIP download: {zip_url}")
                 urllib.request.urlretrieve(zip_url, '/tmp/repo.zip')
                 
                 with zipfile.ZipFile('/tmp/repo.zip', 'r') as zip_ref:
@@ -178,8 +125,8 @@ for i, method in enumerate(clone_methods, 1):
                     break
                     
             except Exception as zip_error:
-                print(f"❌ ZIP download also failed: {{zip_error}}")
-                raise Exception(f"Failed to clone/download repository after all attempts. Last error: {{error_details}}")
+                print(f"❌ ZIP download also failed: {zip_error}")
+                raise Exception(f"Failed to clone/download repository after all attempts. Last error: {error_details}")
         else:
             time.sleep(2)  # Wait before retry
 
@@ -187,7 +134,7 @@ if clone_success:
     os.chdir('/content/app')
     
     # Show repository contents
-    print("\\n📂 Repository contents:")
+    print("\n📂 Repository contents:")
     try:
         result = subprocess.run(['ls', '-la'], capture_output=True, text=True, check=True)
         print(result.stdout)
@@ -196,31 +143,31 @@ if clone_success:
         import glob
         files = glob.glob('*') + glob.glob('.*')
         for f in sorted(files):
-            print(f"  {{f}}")
+            print(f"  {f}")
     
     # Install project requirements if exists
     if os.path.exists('requirements.txt'):
-        print("\\n📋 Installing project requirements...")
+        print("\n📋 Installing project requirements...")
         try:
             result = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", "requirements.txt"], 
                                   capture_output=True, text=True, check=True)
             print("✅ Project requirements installed!")
         except subprocess.CalledProcessError as req_error:
-            print(f"⚠️ Warning: Some requirements failed to install: {{req_error.stderr[:200]}}")
+            print(f"⚠️ Warning: Some requirements failed to install: {req_error.stderr[:200]}")
             print("🔄 Continuing with available packages...")
     else:
-        print("\\n📋 No requirements.txt found - using base packages only")
+        print("\n📋 No requirements.txt found - using base packages only")
 
 # Step 3: Set environment variables
-print("\\n🔐 Setting up environment variables...")
-{env_setup}
+print("\n🔐 Setting up environment variables...")
+# 🔐 Setting up environment variables\nimport os\n\nos.environ["SECRET_KEY"] = "your_secret_key"\n\nprint('✅ Set 1 environment variables')\nprint('🔐 Environment variables configured:')\nenv_vars_list = ['SECRET_KEY']\nfor key in env_vars_list:\n    print(f'  ✓ {key}')
 
 print("✅ Environment variables setup completed!")
 
 # Step 4: Import and start FastAPI app
-print("\\n🔍 Loading FastAPI application...")
-app_file = "{app_file}"
-app_variable = "{app_variable}"
+print("\n🔍 Loading FastAPI application...")
+app_file = "main.py"
+app_variable = "app"
 
 try:
     import importlib.util
@@ -231,22 +178,22 @@ try:
     
     if hasattr(app_module, app_variable):
         fastapi_app = getattr(app_module, app_variable)
-        print(f"✅ Found FastAPI app: {{app_variable}}")
-        print(f"📊 App type: {{type(fastapi_app)}}")
+        print(f"✅ Found FastAPI app: {app_variable}")
+        print(f"📊 App type: {type(fastapi_app)}")
     else:
-        print(f"❌ App variable '{{app_variable}}' not found in {{app_file}}")
+        print(f"❌ App variable '{app_variable}' not found in {app_file}")
         print("Available variables:")
         for attr in dir(app_module):
             if not attr.startswith('_'):
-                print(f"  - {{attr}}: {{type(getattr(app_module, attr))}}")
+                print(f"  - {attr}: {type(getattr(app_module, attr))}")
         raise Exception("App variable not found")
         
 except Exception as e:
-    print(f"❌ Error loading FastAPI app: {{e}}")
+    print(f"❌ Error loading FastAPI app: {e}")
     raise
 
 # Step 5: Start FastAPI server
-print("\\n🚀 Starting FastAPI server...")
+print("\n🚀 Starting FastAPI server...")
 
 import uvicorn
 
@@ -262,7 +209,7 @@ time.sleep(8)
 print("✅ FastAPI server started on port 8000!")
 
 # Step 6: Create ngrok tunnel
-print("\\n🌐 Creating public URL with ngrok...")
+print("\n🌐 Creating public URL with ngrok...")
 
 try:
     from pyngrok import ngrok
@@ -287,42 +234,42 @@ try:
     public_tunnel = ngrok.connect(8000)
     public_url = public_tunnel.public_url
     
-    print("\\n🎉 DEPLOYMENT SUCCESSFUL! 🎉")
+    print("\n🎉 DEPLOYMENT SUCCESSFUL! 🎉")
     print("=" * 60)
-    print(f"🔗 PUBLIC API URL: {{public_url}}")
-    print(f"📚 Swagger UI: {{public_url}}/docs")
-    print(f"📋 ReDoc: {{public_url}}/redoc")
+    print(f"🔗 PUBLIC API URL: {public_url}")
+    print(f"📚 Swagger UI: {public_url}/docs")
+    print(f"📋 ReDoc: {public_url}/redoc")
     print("=" * 60)
     
     # Test the API
-    print("\\n🧪 Testing API...")
+    print("\n🧪 Testing API...")
     try:
-        response = requests.get(f"{{public_url}}/", timeout=10)
+        response = requests.get(f"{public_url}/", timeout=10)
         if response.status_code == 200:
             print("✅ API is responding correctly!")
-            print(f"📊 Response preview: {{response.text[:100]}}...")
+            print(f"📊 Response preview: {response.text[:100]}...")
         else:
-            print(f"⚠️ API returned status: {{response.status_code}}")
+            print(f"⚠️ API returned status: {response.status_code}")
     except Exception as test_error:
-        print(f"⚠️ API test failed: {{test_error}}")
+        print(f"⚠️ API test failed: {test_error}")
     
-    print("\\n🎯 YOUR FASTAPI BACKEND IS NOW LIVE!")
+    print("\n🎯 YOUR FASTAPI BACKEND IS NOW LIVE!")
     print("💡 Copy the PUBLIC API URL above for your frontend")
     print("⚠️ Keep this notebook running to maintain the API")
     
     # Store URL globally
     globals()['PUBLIC_API_URL'] = public_url
     
-    print("\\n📱 QUICK LINKS:")
-    print(f"🏠 Homepage: {{public_url}}/")
-    print(f"📚 API Docs: {{public_url}}/docs")
-    print(f"📋 ReDoc: {{public_url}}/redoc")
+    print("\n📱 QUICK LINKS:")
+    print(f"🏠 Homepage: {public_url}/")
+    print(f"📚 API Docs: {public_url}/docs")
+    print(f"📋 ReDoc: {public_url}/redoc")
     
-    print("\\n✨ DEPLOYMENT COMPLETED SUCCESSFULLY! ✨")
+    print("\n✨ DEPLOYMENT COMPLETED SUCCESSFULLY! ✨")
     
 except Exception as e:
-    print(f"❌ Failed to create ngrok tunnel: {{e}}")
-    print("\\n🔧 Troubleshooting:")
+    print(f"❌ Failed to create ngrok tunnel: {e}")
+    print("\n🔧 Troubleshooting:")
     print("1. Ensure FastAPI server is running")
     print("2. Check if port 8000 is accessible")
     print("3. Try running this cell again")
@@ -334,59 +281,20 @@ def monitor_api():
     """Simple API monitoring function"""
     if 'PUBLIC_API_URL' in globals():
         api_url = globals()['PUBLIC_API_URL']
-        print(f"\\n🔄 Monitoring API: {{api_url}}")
+        print(f"\n🔄 Monitoring API: {api_url}")
         print("Run this function to check API health:")
         print("monitor_api()")
         
         try:
-            response = requests.get(f"{{api_url}}/", timeout=5)
+            response = requests.get(f"{api_url}/", timeout=5)
             timestamp = datetime.now().strftime('%H:%M:%S')
             if response.status_code == 200:
-                print(f"✅ {{timestamp}} - API healthy ({{response.status_code}})")
+                print(f"✅ {timestamp} - API healthy ({response.status_code})")
             else:
-                print(f"⚠️ {{timestamp}} - API status: {{response.status_code}}")
+                print(f"⚠️ {timestamp} - API status: {response.status_code}")
         except Exception as e:
-            print(f"❌ {{timestamp}} - API check failed: {{e}}")
+            print(f"❌ {timestamp} - API check failed: {e}")
     else:
         print("❌ No API URL found")
 
-print("\\n🎯 To monitor your API, run: monitor_api()")
-'''
-
-        return cell_code
-    
-    def create_colab_link(self, cell_code: str) -> str:
-        """Create a direct Colab link with the code"""
-        import urllib.parse
-        import base64
-        
-        # Create a simple notebook structure
-        notebook_content = {
-            "nbformat": 4,
-            "nbformat_minor": 0,
-            "metadata": {
-                "colab": {
-                    "provenance": [],
-                    "toc_visible": True
-                },
-                "kernelspec": {
-                    "name": "python3",
-                    "display_name": "Python 3"
-                },
-                "language_info": {
-                    "name": "python"
-                }
-            },
-            "cells": [
-                {
-                    "cell_type": "code",
-                    "execution_count": None,
-                    "metadata": {},
-                    "outputs": [],
-                    "source": cell_code.split('\\n')
-                }
-            ]
-        }
-        
-        # For now, return instructions to manually create
-        return "https://colab.research.google.com/"
+print("\n🎯 To monitor your API, run: monitor_api()")

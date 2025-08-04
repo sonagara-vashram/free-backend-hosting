@@ -2,13 +2,11 @@ import streamlit as st
 import sys
 import os
 
-# Add the project root to Python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-# Import UI components
 from ui.layout import main_layout
-from ui.form import deployment_form, old_deployment_form
-from ui.response import show_deployment_response, show_success_response
+from ui.form import deployment_form
+from ui.response import show_success_response
 from services.deployer import DeploymentService
 
 def main():
@@ -32,6 +30,19 @@ def main():
     # Show enhanced deployment form
     github_url, env_file, requirements_file, submit = deployment_form()
     
+    # Add "New Deployment" button if previous deployment exists
+    if hasattr(st.session_state, 'deployment_successful'):
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🔄 Start New Deployment", type="secondary"):
+            # Clear previous deployment state
+            if 'deployment_result' in st.session_state:
+                del st.session_state.deployment_result
+            if 'deployment_successful' in st.session_state:
+                del st.session_state.deployment_successful
+            if 'deployment_error' in st.session_state:
+                del st.session_state.deployment_error
+            st.experimental_rerun()
+    
     # Handle deployment submission
     if submit and github_url and requirements_file:
         # Read files
@@ -54,57 +65,49 @@ def main():
                     custom_requirements=requirements_content
                 )
             
+            # Store result in session state to prevent loss on rerun
             if result.get("success"):
-                show_success_response(result)
+                st.session_state.deployment_result = result
+                st.session_state.deployment_successful = True
             else:
-                st.error(f"❌ Deployment failed: {result.get('error', 'Unknown error')}")
+                st.session_state.deployment_error = result.get('error', 'Unknown error')
+                st.session_state.deployment_successful = False
                 
-                # Show troubleshooting tips
-                with st.expander("🔧 Troubleshooting Tips"):
-                    st.markdown("""
-                    **Common issues and solutions:**
-                    
-                    1. **Repository validation failed**
-                       - Ensure the GitHub URL is correct and public
-                       - Check your internet connection
-                    
-                    2. **FastAPI not detected**
-                       - Verify your repository has FastAPI app with `app = FastAPI()`
-                       - Check files like `main.py`, `app.py`, or similar
-                    
-                    3. **File access issues (Windows)**
-                       - Temporary files cleanup may show warnings (this is normal)
-                       - The deployment process should still work correctly
-                    
-                    4. **Requirements issues**
-                       - Ensure requirements.txt has valid package names
-                       - Check for any syntax errors in the file
-                    
-                    **Need more help?** Try with a different repository or check our documentation.
-                    """)
-                    
         except Exception as e:
             error_msg = str(e)
-            st.error(f"❌ An unexpected error occurred: {error_msg}")
+            st.session_state.deployment_error = error_msg
+            st.session_state.deployment_successful = False
+    
+    # Show results from session state
+    if hasattr(st.session_state, 'deployment_successful'):
+        if st.session_state.deployment_successful:
+            show_success_response(st.session_state.deployment_result)
+        else:
+            st.error(f"❌ Deployment failed: {st.session_state.deployment_error}")
             
-            # Enhanced error details
-            with st.expander("🐛 Error Details & Debugging"):
-                st.code(error_msg)
-                
+            # Show troubleshooting tips
+            with st.expander("🔧 Troubleshooting Tips"):
                 st.markdown("""
-                **Debugging steps:**
-                1. Check your internet connection
-                2. Verify the GitHub repository URL is accessible
-                3. Ensure all uploaded files are valid
-                4. Try refreshing the page and attempting again
+                **Common issues and solutions:**
                 
-                **Windows Users:** File cleanup warnings are normal and don't affect functionality.
+                1. **Repository validation failed**
+                   - Ensure the GitHub URL is correct and public
+                   - Check your internet connection
+                
+                2. **FastAPI not detected**
+                   - Verify your repository has FastAPI app with `app = FastAPI()`
+                   - Check files like `main.py`, `app.py`, or similar
+                
+                3. **File access issues (Windows)**
+                   - Temporary files cleanup may show warnings (this is normal)
+                   - The deployment process should still work correctly
+                
+                4. **Requirements issues**
+                   - Ensure requirements.txt has valid package names
+                   - Check for any syntax errors in the file
+                
+                **Need more help?** Try with a different repository or check our documentation.
                 """)
-                
-                # Add debug info for development
-                if "streamlit" in error_msg.lower() or "debug" in os.environ.get("APP_MODE", "").lower():
-                    st.markdown("**Technical Details:**")
-                    st.exception(e)
 
 if __name__ == "__main__":
     main()

@@ -3,7 +3,6 @@ import webbrowser
 import os
 import sys
 
-# Add project root to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.colab_button import create_colab_button, display_colab_instructions, display_api_usage_examples, show_troubleshooting_tips
